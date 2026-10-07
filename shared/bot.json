@@ -1,0 +1,15 @@
+{
+  "_about": "How @iPapkornX2bot formats its replies. If the bot changes, change it here; both versions read this file.",
+
+  "fileButtonPrefix": "file#",
+  "startPrefix": "file_",
+  "pagerData": "pages",
+  "pagerText": "^\\s*(\\d+)\\s*/\\s*(\\d+)\\s*$",
+  "navDataPrefix": "next_",
+  "nextWord": "next",
+  "prevWord": "previous",
+
+  "resultText": "^\\s*([\\d.]+)\\s*(KB|MB|GB)\\s*●\\s*(.*)$",
+  "qualityTag": "(2160p|1080p|720p|480p|360p|4k)",
+  "extensionTag": "\\s(mkv|mp4|avi|webm)$"
+}

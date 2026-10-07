@@ -1,0 +1,54 @@
+{
+  "searchPlaceholder": "Search movies & series…",
+  "searching": "Searching {query}…",
+  "loadingPage": "Loading page {page}…",
+  "requesting": "Asking the bot for the file…",
+  "nothingFound": "Nothing found for “{query}”",
+  "pageFailed": "Page didn't load, try again",
+
+  "resultsCounter": "Item {item} of {items} {dot} Page {page}/{pages}",
+  "have": "have",
+  "partial": "{pct}%",
+
+  "downloadTitle": "Downloading",
+  "resuming": "Resuming: {done}/{total} pieces already here",
+  "downloadSize": "{done}/{total} MB",
+  "downloadSpeed": "{speed} MB/s {dot} {eta} left",
+  "saved": "Saved {name}",
+  "alreadyHave": "Already downloaded: {name}",
+  "downloadStopped": "Download stopped: {reason}. Pick it again to resume.",
+  "botNoFile": "The bot didn't send the file",
+  "discardAsk": "Discard this partial download?",
+  "discarded": "Discarded the partial download of {name}",
+
+  "streamTitle": "Streaming",
+  "streamHelp": "Open this link in a video player on this device:",
+  "streamPlayers": "VLC: More → Stream  {dot}  MX / Next Player: Network stream",
+  "streamStopped": "Streaming stopped: {reason}",
+  "streamEnded": "Stopped streaming {name}",
+
+  "connected": "Connected to @{bot}",
+  "downloadsTo": "Downloads go to {dir}",
+  "cleaningUp": "Cleaning up…",
+
+  "sources": { "telegram": "Telegram", "moviebox": "MovieBox" },
+  "gettingVideo": "Getting the video…",
+  "noVideo": "MovieBox has no video for this one",
+  "joining": "Joining video and audio…",
+  "movie": "Movie",
+  "series": "Series",
+  "season": "Season {n}",
+  "episode": "Episode {n}",
+  "episodes": "{n} episodes",
+
+  "keys": {
+    "home": [["Enter", "Search"], ["Esc", "Quit"]],
+    "source": [["Tab", "Source"]],
+    "browse": [["↑↓", "Move"], ["Enter", "Open"], ["←→", "Page"], ["Esc", "Back"]],
+    "results": [["↑↓", "Move"], ["Enter", "Download"], ["s", "Stream"], ["←→", "Page"], ["Esc", "Back"]],
+    "discard": [["x", "Discard partial"]],
+    "confirm": [["y", "Yes, discard"], ["n", "No"]],
+    "download": [["Ctrl+C", "Stop (resume later)"]],
+    "stream": [["Enter", "Stop"]]
+  }
+}

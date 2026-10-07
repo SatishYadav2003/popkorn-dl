@@ -1,0 +1,34 @@
+{
+  "_about": "How the MovieBox Android app talks to its server, as worked out by MovieBox-TUI (src/providers/moviebox/). If MovieBox changes its app, this is the file to update.",
+
+  "hosts": [
+    "https://api6.aoneroom.com",
+    "https://api5.aoneroom.com",
+    "https://api4.aoneroom.com",
+    "https://api4sg.aoneroom.com",
+    "https://api3.aoneroom.com",
+    "https://api6sg.aoneroom.com",
+    "https://api.inmoviebox.com"
+  ],
+  "signingKeyHex": "efa891974eecd3148df63aa611602defd101259ba521022c57ae0566bd8e",
+
+  "app": {
+    "package": "com.community.oneroom",
+    "versionName": "4.0.01.0813.03",
+    "versionCode": 50020121,
+    "android": "13",
+    "build": "TQ2A.230405.003",
+    "brand": "Redmi",
+    "model": "2201117TG"
+  },
+
+  "paths": {
+    "login": "/wefeed-mobile-bff/user-api/visitor-login",
+    "search": "/wefeed-mobile-bff/subject-api/search/v2",
+    "seasons": "/wefeed-mobile-bff/subject-api/season-info?subjectId={id}",
+    "play": "/wefeed-mobile-bff/subject-api/play-info/v2?subjectId={id}&se={se}&ep={ep}"
+  },
+
+  "_types": "subjectType in search results; everything else (shorts, music, clips) is skipped",
+  "types": { "1": "Movie", "2": "Series" }
+}

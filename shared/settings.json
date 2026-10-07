@@ -1,0 +1,13 @@
+{
+  "_about": "Numbers both versions use. Seconds and bytes.",
+
+  "searchTimeout": 15,
+  "fileTimeout": 30,
+  "chunk": 524288,
+  "workers": 4,
+  "streamPort": 8080,
+
+  "_moviebox": "MovieBox (Node only): segments fetched at once, and the byte-range size per request (the CDN throttles after 96 KB)",
+  "movieboxWorkers": 6,
+  "movieboxRange": 97280
+}

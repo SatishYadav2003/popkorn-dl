@@ -1,0 +1,10 @@
+{
+  "name": "popkorn-dl",
+  "private": true,
+  "description": "Search the Telegram bot and download files with progress",
+  "main": "popkorn.js",
+  "dependencies": {
+    "big-integer": "^1.6.52",
+    "telegram": "^2.26.22"
+  }
+}
