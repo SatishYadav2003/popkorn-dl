@@ -80,16 +80,24 @@ class Plain {
     console.log(`\n  ${S.download} ${name}\n`);
     let startBytes = 0;
     let size = 0;
-    const started = Date.now();
+    const startedAt = Date.now();
+    const samples = [];
     return {
       resumed: (done, total, bytes) => {
         startBytes = bytes;
+        samples.length = 0;
         console.log("  " + fmt(strings.resuming, { done, total }) + "\n");
       },
       progress: (bytes, total) => {
         size = total || size;
         const pct = size ? Math.floor((bytes * 100) / size) : 0;
-        const speed = (bytes - startBytes) / Math.max((Date.now() - started) / 1000, 0.001);
+        const now = Date.now();
+        samples.push({ t: now, bytes });
+        const cutoff = now - 6000;
+        while (samples.length > 1 && samples[0].t < cutoff) samples.shift();
+        const anchor = samples.length > 1 ? samples[0] : null;
+        const speed = anchor ? (bytes - anchor.bytes) / Math.max((now - anchor.t) / 1000, 0.001)
+          : (bytes - startBytes) / Math.max((now - startedAt) / 1000, 0.001);
         process.stdout.write(`\r  ${String(pct).padStart(3)}%  ${(speed / 1024 / 1024).toFixed(1)} MB/s\x1b[K`);
       },
     };

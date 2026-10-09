@@ -235,8 +235,10 @@ function downloadScreen(s, w, h) {
   const d = s.download;
   const inner = Math.min(w - 2, 72) - 4;
   const mb = (n) => (n / 1024 / 1024).toFixed(0);
-  const elapsed = Math.max((Date.now() - d.startedAt) / 1000, 0.001);
-  const speed = (d.bytes - d.startBytes) / elapsed;
+  const now = Date.now();
+  const anchor = d.samples?.length > 1 ? d.samples[0] : null;
+  const speed = anchor ? (d.bytes - anchor.bytes) / Math.max((now - anchor.t) / 1000, 0.001)
+    : (d.bytes - d.startBytes) / Math.max((now - d.startedAt) / 1000, 0.001);
   const eta = speed > 0 ? Math.round((d.size - d.bytes) / speed) : 0;
   const pct = d.size ? Math.min(d.bytes / d.size, 1) : 0; // MovieBox sizes are estimates
   const sizeText = fmt(strings.downloadSize, { done: mb(d.bytes), total: mb(d.size) });

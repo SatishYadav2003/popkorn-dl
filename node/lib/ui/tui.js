@@ -195,7 +195,7 @@ class Tui {
 
   // Switches to the download screen; returns hooks the downloader reports to.
   startDownload(name, size) {
-    const d = { name, size, bytes: 0, startBytes: 0, startedAt: Date.now(), note: "" };
+    const d = { name, size, bytes: 0, startBytes: 0, startedAt: Date.now(), note: "", samples: [] };
     this.s.download = d;
     this.s.screen = "download";
     this.draw();
@@ -203,12 +203,18 @@ class Tui {
       resumed: (done, total, bytes) => {
         d.note = fmt(strings.resuming, { done, total });
         d.bytes = d.startBytes = bytes;
+        d.samples = [];
         this.draw();
       },
       // Redraws at most ~10 times a second; tick() covers the rest.
       progress: (bytes) => {
         d.bytes = bytes;
-        if (Date.now() - this.lastPaint > 100) this.draw();
+        const now = Date.now();
+        d.samples.push({ t: now, bytes });
+        // keep only last 6 seconds of samples
+        const cutoff = now - 6000;
+        while (d.samples.length > 1 && d.samples[0].t < cutoff) d.samples.shift();
+        if (now - this.lastPaint > 100) this.draw();
       },
     };
   }
