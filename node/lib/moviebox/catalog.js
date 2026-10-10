@@ -69,15 +69,36 @@ function cookieFolder(cookie) {
 //
 // The plain `url` the server sends is a short placeholder clip, the same for every
 // title; the real video's address is inside the signed cookie.
-async function playInfo(id, se = 0, ep = 0) {
-  const data = await request("GET", fmt(mb.paths.play, { id, se, ep }));
+// When dubId is set, re-fetches with that dub's audio stream.
+async function playInfo(id, se = 0, ep = 0, dubId = null) {
+  let path = fmt(mb.paths.play, { id, se, ep });
+  if (dubId != null) path += `&dubId=${dubId}`;
+  const data = await request("GET", path);
+  const subtitles = (data.subTitleList || []).map((s) => ({
+    lang: s.language || s.lang || "Unknown",
+    langCode: s.languageCode || s.langCode || "",
+    url: s.url || s.srtUrl || "",
+  })).filter((s) => s.url);
   for (const st of data.streams || []) {
     const cookie = (st.signCookie || "").split(";").map((s) => s.trim()).filter(Boolean).join("; ");
     const folder = cookieFolder(cookie);
     if (!folder?.startsWith("http")) continue;
-    return { mpd: folder.replace(/\*$/, "").replace(/\/?$/, "/index.mpd"), cookie, episodeTitle: data.title || "" };
+    return { mpd: folder.replace(/\*$/, "").replace(/\/?$/, "/index.mpd"), cookie, episodeTitle: data.title || "", subtitles };
   }
   return null;
 }
 
-module.exports = { search, seasons, playInfo };
+// Available audio dub languages for one episode/movie.
+// Returns [] on any error — this is an optional feature.
+async function dubInfo(id, se = 0, ep = 0) {
+  try {
+    const data = await request("GET", fmt(mb.paths.dubInfo, { id, se, ep }));
+    return (data.dubList || data.dubs || [])
+      .map((d) => ({ id: d.dubId || d.id, lang: d.language || d.lang || "Unknown" }))
+      .filter((d) => d.id);
+  } catch {
+    return [];
+  }
+}
+
+module.exports = { search, seasons, playInfo, dubInfo };

@@ -26,7 +26,8 @@
     "login": "/wefeed-mobile-bff/user-api/visitor-login",
     "search": "/wefeed-mobile-bff/subject-api/search/v2",
     "seasons": "/wefeed-mobile-bff/subject-api/season-info?subjectId={id}",
-    "play": "/wefeed-mobile-bff/subject-api/play-info/v2?subjectId={id}&se={se}&ep={ep}"
+    "play": "/wefeed-mobile-bff/subject-api/play-info/v2?subjectId={id}&se={se}&ep={ep}",
+    "dubInfo": "/wefeed-mobile-bff/subject-api/dub-info?subjectId={id}&se={se}&ep={ep}"
   },
 
   "_types": "subjectType in search results; everything else (shorts, music, clips) is skipped",

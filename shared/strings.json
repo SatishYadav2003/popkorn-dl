@@ -41,11 +41,16 @@
   "episode": "Episode {n}",
   "episodes": "{n} episodes",
 
+  "pickingDub": "Audio language",
+  "pickingSubtitle": "Subtitle language",
+  "subtitleSaved": "Subtitle saved: {name}",
+  "subtitleFailed": "Subtitle download failed",
+
   "keys": {
     "home": [["Enter", "Search"], ["Esc", "Quit"]],
     "source": [["Tab", "Source"]],
     "browse": [["↑↓", "Move"], ["Enter", "Open"], ["←→", "Page"], ["Esc", "Back"]],
-    "results": [["↑↓", "Move"], ["Enter", "Download"], ["s", "Stream"], ["←→", "Page"], ["Esc", "Back"]],
+    "results": [["↑↓", "Move"], ["Enter", "Download"], ["s", "Stream"], ["t", "Subs"], ["←→", "Page"], ["Esc", "Back"]],
     "discard": [["x", "Discard partial"]],
     "confirm": [["y", "Yes, discard"], ["n", "No"]],
     "download": [["Ctrl+C", "Stop (resume later)"]],

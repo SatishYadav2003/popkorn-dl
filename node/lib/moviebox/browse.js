@@ -101,6 +101,8 @@ async function pickQuality(t, se, ep, header) {
   }
   const { manifest } = video;
   const title = video.episodeTitle && t.series ? `${header} ${S.dot} ${video.episodeTitle}` : header;
+  // Fetch dubs silently; empty array means no dub option shown.
+  const dubs = await catalog.dubInfo(t.id, se, ep).catch(() => []);
   while (true) {
     const local = scanLocal();
     const options = manifest.video.map((rep) => ({ ...video, rep, name: `${baseName(t, se, ep)} ${rep.height}p.mp4` }));
@@ -118,9 +120,62 @@ async function pickQuality(t, se, ep, header) {
       ui.notify("info", fmt(strings.discarded, { name: options[choice.index].name }));
       continue;
     }
-    if (choice.action !== "download" && choice.action !== "stream") continue;
+    if (choice.action === "subtitleOnly") {
+      if (!video.subtitles?.length) {
+        ui.notify("warning", "No subtitles available");
+        continue;
+      }
+      const sub = await pickSubtitle(video.subtitles, title);
+      if (!sub || sub === "back") continue;
+      const srtName = `${baseName(t, se, ep)}.${sub.langCode || sub.lang}.srt`;
+      await downloadSubtitleOnly(sub, srtName, video.cdn);
+      continue;
+    }
+    if (choice.action === "stream") {
+      const picked = options[choice.index];
+      if (await stream(picked)) return true;
+      continue;
+    }
+    if (choice.action !== "download") continue;
     const picked = options[choice.index];
-    if (await (choice.action === "stream" ? stream(picked) : download(picked))) return true;
+
+    // Dub step: offer audio language selection if dubs are available.
+    let finalVideo = { ...picked };
+    if (dubs.length > 0) {
+      const dubChoice = await pickDub(dubs, title);
+      if (dubChoice === "back") continue;
+      if (dubChoice !== null) {
+        try {
+          const dubInfoResult = await ui.busy(strings.gettingVideo, catalog.playInfo(t.id, se, ep, dubChoice));
+          if (dubInfoResult) {
+            const dubSource = {
+              cookie: dubInfoResult.cookie,
+              refresh: async () => {
+                const f = await catalog.playInfo(t.id, se, ep, dubChoice);
+                if (f) dubSource.cookie = f.cookie;
+              },
+            };
+            const dubCdn = new Cdn(dubSource);
+            const dubManifest = parseManifest(await dubCdn.text(dubInfoResult.mpd), dubInfoResult.mpd);
+            const dubRep = dubManifest.video.find((v) => v.height === picked.rep.height) || dubManifest.video[0];
+            finalVideo = {
+              ...picked,
+              cdn: dubCdn,
+              manifest: dubManifest,
+              rep: dubRep,
+              name: `${baseName(t, se, ep)} ${dubRep.height}p.mp4`,
+            };
+          }
+        } catch {
+          // Keep original if dub fetch fails.
+        }
+      }
+    }
+
+    // Subtitle step: always use subtitles from the original playInfo response.
+    const subChoice = await pickSubtitle(video.subtitles || [], title);
+    if (subChoice === "back") continue;
+    if (await download({ ...finalVideo, subtitle: subChoice })) return true;
   }
 }
 
@@ -138,7 +193,57 @@ async function findVideo(t, se, ep) {
   };
   const cdn = new Cdn(source);
   const manifest = parseManifest(await cdn.text(info.mpd), info.mpd);
-  return { cdn, manifest, mpdUrl: info.mpd, episodeTitle: info.episodeTitle };
+  return { cdn, manifest, mpdUrl: info.mpd, episodeTitle: info.episodeTitle, subtitles: info.subtitles || [] };
+}
+
+// Subtitle-only download: fetch the SRT and write it to the downloads folder.
+async function downloadSubtitleOnly(sub, srtName, cdn) {
+  const { downloadDir } = require("../config");
+  const fs = require("fs");
+  const path = require("path");
+  let srtContent;
+  try {
+    const res = await fetch(sub.url, { headers: { Cookie: cdn.source.cookie }, signal: AbortSignal.timeout(15000) });
+    if (res.ok) srtContent = await res.text();
+  } catch {}
+  if (!srtContent) {
+    try {
+      const res = await fetch(sub.url, { signal: AbortSignal.timeout(15000) });
+      if (res.ok) srtContent = await res.text();
+    } catch {}
+  }
+  if (!srtContent) {
+    ui.notify("warning", strings.subtitleFailed);
+    return;
+  }
+  fs.mkdirSync(downloadDir, { recursive: true });
+  const dest = path.join(downloadDir, srtName);
+  fs.writeFileSync(dest, srtContent);
+  ui.notify("success", fmt(strings.subtitleSaved, { name: srtName }));
+}
+
+// Show a dub language picker. Returns null (keep original), a dub id, or "back".
+async function pickDub(dubs, header) {
+  const items = [
+    { title: "Original (no dub)", size: "" },
+    ...dubs.map((d) => ({ title: d.lang, size: "" })),
+  ];
+  const choice = await ui.pickResult(header, items, 1, 1, "browse");
+  if (choice.action === "back") return "back";
+  if (choice.index === 0) return null;
+  return dubs[choice.index - 1].id;
+}
+
+// Show a subtitle language picker. Returns null (none), a subtitle object, or "back".
+async function pickSubtitle(subtitles, header) {
+  const items = [
+    { title: "None", size: "" },
+    ...subtitles.map((s) => ({ title: s.lang, size: s.langCode })),
+  ];
+  const choice = await ui.pickResult(header, items, 1, 1, "browse");
+  if (choice.action === "back") return "back";
+  if (choice.index === 0) return null;
+  return subtitles[choice.index - 1];
 }
 
 module.exports = { browse };

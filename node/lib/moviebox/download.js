@@ -4,6 +4,9 @@
 // connection the next try fetches just the ones that are missing.
 const fs = require("fs");
 const path = require("path");
+const { execFile } = require("child_process");
+const { promisify } = require("util");
+const execFileAsync = promisify(execFile);
 const { downloadDir, incompleteDir } = require("../config");
 const { writeRecord } = require("../resume");
 const { strings, settings, fmt } = require("../shared");
@@ -13,9 +16,9 @@ const ui = require("../ui");
 
 const WORKERS = settings.movieboxWorkers;
 
-// `video` is { name, cdn, manifest, rep } from the quality list. True once it's on disk.
+// `video` is { name, cdn, manifest, rep, subtitle? } from the quality list. True once it's on disk.
 async function download(video) {
-  const { name, cdn, manifest, rep } = video;
+  const { name, cdn, subtitle } = video;
   const target = path.join(downloadDir, name);
   if (fs.existsSync(target)) {
     ui.notify("success", fmt(strings.alreadyHave, { name }));
@@ -23,6 +26,9 @@ async function download(video) {
   }
   try {
     await fetchAll(video, target);
+    if (subtitle) {
+      await embedSubtitle(target, subtitle, cdn);
+    }
     ui.notify("success", fmt(strings.saved, { name }));
     return true;
   } catch (err) {
@@ -109,6 +115,43 @@ async function fetchAll({ name, cdn, manifest, rep }, target) {
   // Drop the folder too, unless another stopped download is still waiting in it.
   if (fs.readdirSync(incompleteDir).every((f) => f === ".nomedia")) {
     fs.rmSync(incompleteDir, { recursive: true, force: true });
+  }
+}
+
+// Embed a subtitle SRT into the finished MP4 using ffmpeg.
+// Falls back to saving the .srt alongside the video if ffmpeg is unavailable or fails.
+async function embedSubtitle(videoPath, subtitle, cdn) {
+  let srtContent;
+  try {
+    const res = await fetch(subtitle.url, { headers: { Cookie: cdn.source.cookie }, signal: AbortSignal.timeout(15000) });
+    if (res.ok) srtContent = await res.text();
+  } catch {}
+  if (!srtContent) {
+    try {
+      const res = await fetch(subtitle.url, { signal: AbortSignal.timeout(15000) });
+      if (res.ok) srtContent = await res.text();
+    } catch {}
+  }
+  if (!srtContent) {
+    ui.notify("warning", strings.subtitleFailed || "Subtitle download failed");
+    return;
+  }
+
+  const srtPath = videoPath + ".tmp.srt";
+  const tmpMp4 = videoPath + ".tmp.mp4";
+  fs.writeFileSync(srtPath, srtContent);
+  try {
+    await execFileAsync("ffmpeg", ["-i", videoPath, "-i", srtPath, "-c", "copy", "-c:s", "mov_text", "-y", tmpMp4], { stdio: "pipe" });
+    fs.renameSync(tmpMp4, videoPath);
+    ui.notify("info", `Subtitle embedded (${subtitle.lang})`);
+  } catch {
+    // ffmpeg not installed or failed → save srt alongside the video
+    const srtFinal = videoPath.replace(/\.mp4$/, `.${subtitle.langCode || subtitle.lang}.srt`);
+    fs.renameSync(srtPath, srtFinal);
+    ui.notify("warning", "ffmpeg not found — subtitle saved separately");
+  } finally {
+    try { fs.rmSync(srtPath, { force: true }); } catch {}
+    try { fs.rmSync(tmpMp4, { force: true }); } catch {}
   }
 }
 

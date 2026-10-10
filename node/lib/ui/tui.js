@@ -126,6 +126,9 @@ class Tui {
       case "s":
         if (s.mode === "results") return this.reply({ action: "stream", index: s.sel });
         break;
+      case "t":
+        if (s.mode === "results") return this.reply({ action: "subtitleOnly", index: s.sel });
+        break;
       case "x":
         // Only a half-done download can be discarded; a finished file stays.
         if (s.mode === "results" && s.items[s.sel].marker?.kind === "partial") s.confirm = true;
