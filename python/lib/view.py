@@ -121,8 +121,13 @@ def home_screen(s, w, h):
         spinner = S["spinner"][s["frame"] % len(S["spinner"])]
         status = [[(spinner + " ", c.info + BOLD), (s["busy"], c.info)]]
     else:
-        status = [[(fmt(strings["connected"], bot=s["bot"]), c.dim)],
-                  [(fmt(strings["downloadsTo"], dir=s["dir"]), c.dim)]]
+        source = s.get("source", "telegram")
+        source_label = (strings.get("sources") or {}).get(source, source.title())
+        status = [
+            [(fmt(strings["connected"], bot=s["bot"]), c.dim)],
+            [(fmt(strings["downloadsTo"], dir=s["dir"]), c.dim)],
+            [("[Tab] ", c.keyBracket + BOLD), (source_label, c.focus + BOLD)],
+        ]
 
     version = "v" + theme["version"]
     content = [
@@ -135,7 +140,8 @@ def home_screen(s, w, h):
     ]
     top = max(0, (h - 1 - len(content)) // 2)
     body = [BLANK] * top + content
-    return with_toasts(with_footer(body, footer(strings["keys"]["home"], w), h), s["toasts"], w, h)
+    foot_keys = list(strings["keys"]["home"]) + list(strings["keys"].get("source", []))
+    return with_toasts(with_footer(body, footer(foot_keys, w), h), s["toasts"], w, h)
 
 
 def result_block(item, index, selected, cw):

@@ -39,8 +39,11 @@ def split_keys(data):
 
 
 class Tui:
+    SOURCES = ["telegram", "moviebox"]
+
     def __init__(self):
-        self.s = {"screen": "home", "query": "", "busy": None, "frame": 0, "toasts": [], "bot": "", "dir": ""}
+        self.s = {"screen": "home", "query": "", "busy": None, "frame": 0, "toasts": [],
+                  "bot": "", "dir": "", "source": "telegram"}
         self.answer = None  # the future for the question currently on screen
         self.active = False
         self.last_paint = 0
@@ -118,6 +121,9 @@ class Tui:
         if key == "enter":
             if s["query"].strip():
                 return self._reply(s["query"].strip())
+        elif key == "\t":  # Tab: cycle source
+            idx = self.SOURCES.index(s["source"]) if s["source"] in self.SOURCES else 0
+            s["source"] = self.SOURCES[(idx + 1) % len(self.SOURCES)]
         elif key == "escape":
             if s["query"]:
                 s["query"] = ""
@@ -139,15 +145,24 @@ class Tui:
         elif key == "down":
             s["sel"] = (s["sel"] + 1) % n
         elif key == "right" and s["page"] < s["total"]:
-            return self._reply(("next", None))
+            return self._reply({"action": "next", "index": None})
         elif key == "left" and s["page"] > 1:
-            return self._reply(("prev", None))
+            return self._reply({"action": "prev", "index": None})
         elif key == "enter":
-            return self._reply(("download", s["sel"]))
+            mode = s.get("mode", "")
+            if mode == "browse":
+                return self._reply({"action": "open", "index": s["sel"]})
+            return self._reply({"action": "download", "index": s["sel"]})
         elif key == "s":
-            return self._reply(("stream", s["sel"]))
+            return self._reply({"action": "stream", "index": s["sel"]})
+        elif key == "t":
+            return self._reply({"action": "subtitle_only", "index": s["sel"]})
+        elif key == "x":
+            marker = (s["items"][s["sel"]].get("marker") or {})
+            if marker.get("kind") == "partial":
+                return self._reply({"action": "discard", "index": s["sel"]})
         elif key in ("escape", "backspace"):
-            return self._reply(("back", None))
+            return self._reply({"action": "back", "index": None})
         elif len(key) == 1 and key.isdigit():
             # 1-9 and 0 (for 10) jump straight to an item
             i = 9 if key == "0" else int(key) - 1
@@ -173,9 +188,12 @@ class Tui:
     # ---------- what popkorn.py and the modules call ----------
 
     async def ask_query(self):
-        """The search text, or None to quit."""
+        """The search text, or None to quit. Returns (query, source) or None."""
         self.s["query"] = ""
-        return await self._ask("home")
+        result = await self._ask("home")
+        if result is None:
+            return None
+        return result, self.s.get("source", "telegram")
 
     async def busy(self, text, awaitable):
         """Shows a spinner with text while awaitable runs; returns its result."""
@@ -187,10 +205,15 @@ class Tui:
             self.s["busy"] = None
             self.draw()
 
-    async def pick_result(self, query, items, page, total):
-        """items: [{title, size, quality, ext, marker}]; returns (action, index)."""
-        self.s.update(query=query, items=items, page=page, total=total, sel=0, top=0)
-        return await self._ask("results")
+    async def pick_result(self, query, items, page, total, mode="browse", sel=0):
+        """items: [{title, size, quality, ext, marker}]; returns {"action": ..., "index": ...}."""
+        self.s.update(query=query, items=items, page=page, total=total, sel=sel, top=0, mode=mode)
+        result = await self._ask("results")
+        # Normalise legacy tuple replies from plain UI or old callers.
+        if isinstance(result, tuple):
+            action, index = result
+            return {"action": action, "index": index}
+        return result
 
     def notify(self, kind, text):
         self.s["toasts"].append({"kind": kind, "text": text, "until": time.monotonic() + TOAST_SECONDS.get(kind, 5)})

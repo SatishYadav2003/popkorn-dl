@@ -20,38 +20,44 @@ class Plain:
         pass
 
     async def ask_query(self):
-        return (await ask("\n🔎 Search (blank = quit): ")) or None
+        result = (await ask("\n🔎 Search (blank = quit): ")) or None
+        if result is None:
+            return None
+        return result, "telegram"
 
     async def busy(self, text, awaitable):
         return await awaitable
 
-    async def pick_result(self, query, items, page, total):
+    async def pick_result(self, query, items, page, total, mode="browse", sel=0):
         print(f"\n  📄 Page {page}/{total}\n")
         for i, it in enumerate(items):
             label = f"  [{i + 1}] "
             marker = it.get("marker")
             prefix = (f"{S['have']} {strings['have']} " if marker and marker["kind"] == "have"
                       else f"{S['partial']} {marker['pct']}% " if marker else "")
-            for j, line in enumerate(wrap(f"{prefix}{it['size']} ● {it['name']}", 78 - len(label))):
+            name = it.get("name") or it.get("title") or ""
+            size = it.get("size") or ""
+            for j, line in enumerate(wrap(f"{prefix}{size} ● {name}", 78 - len(label))):
                 print((" " * len(label) if j else label) + line)
             print()
-        keys = ["number = download", "number+s = stream (e.g. 3s)"]
+        keys = ["number = download/open", "number+s = stream (e.g. 3s)"]
         if page < total:
             keys.append("n = next page")
         if page > 1:
             keys.append("p = previous page")
-        keys.append("blank = new search")
+        keys.append("blank = back")
         while True:
             ans = (await ask(f"  ({', '.join(keys)}): ")).lower()
             if not ans:
-                return "back", None
+                return {"action": "back", "index": None}
             if ans == "n" and page < total:
-                return "next", None
+                return {"action": "next", "index": None}
             if ans == "p" and page > 1:
-                return "prev", None
+                return {"action": "prev", "index": None}
             m = re.fullmatch(r"(\d+)(s?)", ans)
             if m and 1 <= int(m[1]) <= len(items):
-                return ("stream" if m[2] else "download"), int(m[1]) - 1
+                action = "stream" if m[2] else ("open" if mode == "browse" else "download")
+                return {"action": action, "index": int(m[1]) - 1}
             print("  ❌ invalid choice")
 
     def notify(self, kind, text):
